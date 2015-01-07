@@ -10,6 +10,12 @@ using System.Xml.Linq;
 
 namespace Ecommerce.Prestashop
 {
+    //public enum IOFormat
+    //{
+    //    XML,
+    //    JSON
+    //}
+
     public class PrestaShopWebserviceException : Exception
     {
         public PrestaShopWebserviceException() { }
@@ -47,8 +53,19 @@ namespace Ecommerce.Prestashop
         // For URL encoding
         private readonly Encoding ENCODING;
 
+        // Output type (XML or JSON, default: XML)
+        // Only supported in PS 1.6.0.9 and greater
+        //private readonly IOFormat IO_FORMAT;
+
         public Version CurrentVersion { get; private set; }
 
+        /// <summary>
+        /// Create instance of PrestaShopWebService
+        /// </summary>
+        /// <param name="apiUrl"></param>
+        /// <param name="apiKey"></param>
+        /// <param name="ioFormat">Only supported in PS 1.6.0.9 and greater</param>
+        /// <param name="debug"></param>
         public PrestaShopWebService(string apiUrl, string apiKey, bool debug = true)
         {
             this.MIN_COMPATIBLE_VERSION = new Version("1.4.0.17");
@@ -135,10 +152,8 @@ namespace Ecommerce.Prestashop
             string header = String.Empty;
             string data = String.Empty;
 
-            //if (this.debug)
-            //{
-            //    Console.WriteLine("Request method: {1}", method);
-            //}
+            //string mediaType = (IOFormat.JSON == this.IO_FORMAT) ? "text/json" : "text/xml";
+            string mediaType = "text/xml";
 
             using (var handler = new HttpClientHandler { Credentials = new NetworkCredential(this.apiKey, "") })
             using (var client = new HttpClient(handler))
@@ -154,10 +169,10 @@ namespace Ecommerce.Prestashop
                             response = await client.GetAsync(url);
                             break;
                         case "POST":
-                            response = await client.PostAsync(url, new StringContent(document.ToString(), ENCODING, "text/xml"));
+                            response = await client.PostAsync(url, new StringContent(document.ToString(), ENCODING, mediaType));
                             break;
                         case "PUT":
-                            response = await client.PutAsync(url, new StringContent(document.ToString(), ENCODING, "text/xml"));
+                            response = await client.PutAsync(url, new StringContent(document.ToString(), ENCODING, mediaType));
                             break;
                         case "DELETE":
                             response = await client.DeleteAsync(url);
@@ -171,7 +186,7 @@ namespace Ecommerce.Prestashop
                 }
                 catch (HttpRequestException)
                 {
-                    throw new PrestaShopWebserviceException("An error occured while sending the request,");
+                    throw new PrestaShopWebserviceException("An error occured while sending the request");
                 }
 
                 statusCode = CheckStatusCode(response.StatusCode);
@@ -192,11 +207,6 @@ namespace Ecommerce.Prestashop
 
                 response.Dispose();
             }
-
-            //if (this.debug)
-            //{
-            //    Console.WriteLine("Response code: {0}\nResponse headers:\n{1}\nResponse body:\n{2}", statusCode, header, data);
-            //}
 
             return new RequestResponse(statusCode, header, data);
         }
@@ -219,11 +229,6 @@ namespace Ecommerce.Prestashop
             try 
             { 
                 xdoc = XDocument.Parse(xml);
-
-                //if (this.debug)
-                //{
-                //    Console.WriteLine("Parsed XML:\n{0}", xdoc.ToString());
-                //}
             }
             catch (Exception e) 
             {
@@ -284,11 +289,6 @@ namespace Ecommerce.Prestashop
         /// <returns>XML response from Web Service</returns>
         public async Task<XElement> AddWithUrl(string url, XElement xml)
         {
-            //if (this.debug)
-            //{
-            //    Console.WriteLine(url);
-            //}
-
             RequestResponse response = await Execute(url, "POST", xml.Document);
             return Parse(response.Data);
         }
@@ -360,11 +360,6 @@ namespace Ecommerce.Prestashop
         /// <returns>XML response from the Web Service</returns>
         public async Task<XElement> GetWithUrl(string url)
         {
-            //if (this.debug)
-            //{
-            //    Console.WriteLine(url);
-            //}
-
             RequestResponse response = await Execute(url, "GET");            
             return Parse(response.Data);
         }
@@ -421,11 +416,6 @@ namespace Ecommerce.Prestashop
         /// <returns>Header from Web Service's response</returns>
         public async Task<string> HeadWithUrl(string url)
         {
-            //if (this.debug)
-            //{
-            //    Console.WriteLine(url);
-            //}
-
             RequestResponse response = await Execute(url, "HEAD");
             return response.Header;
         }
@@ -449,11 +439,6 @@ namespace Ecommerce.Prestashop
         /// <param name="xml">Modified XML of the resource</param>
         public async Task<XElement> EditWithUrl(string url, XElement xml)
         {
-            //if (this.debug)
-            //{
-            //    Console.WriteLine(url);
-            //}
-
             RequestResponse response = await Execute(url, "PUT", xml.Document);
             return Parse(response.Data);
         }
@@ -488,11 +473,6 @@ namespace Ecommerce.Prestashop
         /// <param name="url">A URL which explicitly sets resource type and resource ID</param>
         public async Task DeleteWithUrl(string url)
         {
-            //if (this.debug)
-            //{
-            //    Console.WriteLine(url);
-            //}
-
             await Execute(url, "DELETE");
         }
     }
