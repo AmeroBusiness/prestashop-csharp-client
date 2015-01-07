@@ -40,7 +40,7 @@ namespace Ecommerce.Prestashop
     /// <summary>
     /// Instantiate the PrestaShopWebService to start executing operations against the PrestaShop Web Service
     /// </summary>
-    public class PrestaShopWebService
+    public class PrestaShopWebService : IPrestaShopWebService
     {
         private readonly string apiUrl;
         private readonly string apiKey;
